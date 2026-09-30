@@ -335,48 +335,36 @@ echo "============================================================"
 date
 ```
 
-## 3. Extract the 2A → 5A translocated genes
+## 3. Use the saved gene list and the wheatR liftoff
 ```bash
-awk -F'\t' -v OFS='\t' \
--v start=251164 \
--v end=105638351 '
-NR==1 {next}
+# wheatS-on-wheatR-liftoff
+grep -Ff wheatR-gene-ids-5A-to-2A-0-115.txt wheatS_genes_on_wheatR.gff3 \
+> wheatR-5A-to-2A-0-115-liftoff-genes.gff3
 
-$2=="chr5A" &&
-$3<=end &&
-$4>=start &&
-$1 ~ /\.2AG/ {
-
-    print $1,$2,$3,$4,$5,"2A_to_5A"
-}' WheatS_genes_on_WheatR.coordinates.tsv \
-> WheatR_2A_to_5A_genes.tsv
-
-# Add header:
-sed -i \
-'1iGeneID\tWheatR_chr\tWheatR_start\tWheatR_end\tStrand\tRegion' \
-WheatR_2A_to_5A_genes.tsv
+# wheatS-equivalent
+grep -Ff wheatR-gene-ids-5A-to-2A-0-115.txt filtered_wheatS.gff3 \
+> wheatS-equivalent-5A-to-2A-0-115-liftoff-genes.gff3
 ```
 
-## 4. Extract the reciprocal 5A → 2A region
+## 4. Make coordinate tables
 ```bash
-awk -F'\t' -v OFS='\t' \
--v start=30241 \
--v end=11232272 '
-NR==1 {next}
+# wheatR
+grep -P "\tgene\t" wheatR-5A-to-2A-0-115-liftoff-genes.gff3 \
+| awk 'BEGIN{OFS="\t"}{
+split($9,a,";");
+gsub("ID=","",a[1]);
+print a[1],$1,$4,$5
+}' \
+> wheatR-5A-to-2A-0-115-coordinates.tsv
 
-$2=="chr2A" &&
-$3<=end &&
-$4>=start &&
-$1 ~ /\.5AG/ {
-
-    print $1,$2,$3,$4,$5,"5A_to_2A"
-}' WheatS_genes_on_WheatR.coordinates.tsv \
-> WheatR_5A_to_2A_genes.tsv
-
-# Add header:
-sed -i \
-'1iGeneID\tWheatR_chr\tWheatR_start\tWheatR_end\tStrand\tRegion' \
-WheatR_5A_to_2A_genes.tsv
+# wheatS-equivalent
+grep -P "\tgene\t" wheatS-equivalent-5A-to-2A-0-115-liftoff-genes.gff3 \
+| awk 'BEGIN{OFS="\t"}{
+split($9,a,";");
+gsub("ID=","",a[1]);
+print a[1],$1,$4,$5
+}' \
+> wheatS-equivalent-5A-to-2A-0-115-coordinates.tsv
 ```
 
 ## 5. Create a clean original WheatS GeneID
