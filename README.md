@@ -7,29 +7,30 @@ WheatS_genes_on_WheatR.gff3
 WheatS_genes_on_Glenn.gff3
 filtered_WheatS.gff3
 ```
-## 1. Extract gene-level WheatS → WheatR mappings
+## 1. Extract WheatS genes from translocated region
 ```bash
-awk -F'\t' '
-BEGIN {OFS="\t"}
+Make BED file:
+cat > wheatR_translocation_regions.bed <<EOF
+chr5A	0	115000000	wheatR_chr5A_to_wheatR_chr2A-0-115
+chr2A	0	115000000	wheatR_chr2A_to_wheatR_chr5A-0-115
+EOF
 
-$3=="gene" {
+Extract genes:
+bedtools intersect \
+-a filtered_wheatS.gff3 \
+-b wheatR_translocation_regions.bed \
+-wa \
+> wheatS_wheatR_translocation_regions-0-115.gff3
 
-    id=$9
-
-    sub(/^.*ID=/,"",id)
-    sub(/;.*/,"",id)
-
-    print id,$1,$4,$5,$7
-}' WheatS_genes_on_WheatR.gff3 \
-> WheatS_genes_on_WheatR.coordinates.tsv
-
-# Add a header:
-sed -i \
-'1iGeneID\tWheatR_chr\tWheatR_start\tWheatR_end\tStrand' \
-WheatS_genes_on_WheatR.coordinates.tsv
+Get gene IDs:
+grep -P "\tgene\t" wheatS_wheatR_translocation_regions-0-115.gff3 \
+| cut -f9 \
+| sed 's/.*ID=//' \
+| sed 's/;.*//' \
+> wheatS_wheatR_translocation_gene_ids-0-115.txt
 ```
 
-## 2. From the result of your minimap alignment between WheatS and WheatR, identify the coordinates of translocated region. Look for large blocks where sequence from one chromosome aligns to a different chromosome
+## 2. Run liftoff to get the wheatS equivalent genes from wheatR translocated region
 ```bash
 2A to 5A 251164 105638351
 5A to 2A 30241 11232272
