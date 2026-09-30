@@ -4,33 +4,53 @@ The goal is to use Liftoff mappings to determine which WheatS  genes correspond 
 ## At minimum, you need:
 ```bash
 WheatS_genes_on_WheatR.gff3
-WheatS_genes_on_Glenn.gff3
+WheatS_genes_on_WheatG.gff3
 filtered_WheatS.gff3
 ```
-## 1. Extract WheatS genes from translocated region
+## 1. Extract WheatS genes and wheatR genes
 ```bash
 Make BED file:
-cat > wheatR_translocation_regions.bed <<EOF
-chr5A	0	115000000	wheatR_chr5A_to_wheatR_chr2A-0-115
-chr2A	0	115000000	wheatR_chr2A_to_wheatR_chr5A-0-115
+cat > wheatS_chr5A-regions.bed <<EOF
+chr5A	0	115000000	wheatS_chr5A_-0-115
 EOF
+
+cat > heatS_chr2A-regions.bed <<EOF
+chr2A	0	115000000	wheatR_chr2A-0-115
+EOF
+
+# do the same for wheatR
 
 Extract genes:
 bedtools intersect \
 -a filtered_wheatS.gff3 \
--b wheatR_translocation_regions.bed \
+-b wheatS_chr2A-regions.bed \
 -wa \
-> wheatS_wheatR_translocation_regions-0-115.gff3
+> wheatS_chr2A_regions-0-115.gff3
+
+## do the same for 5A and for wheatR
 
 Get gene IDs:
-grep -P "\tgene\t" wheatS_wheatR_translocation_regions-0-115.gff3 \
+grep -P "\tgene\t" wheatS_chr2A_regions-0-115.gff3 \
 | cut -f9 \
 | sed 's/.*ID=//' \
 | sed 's/;.*//' \
-> wheatS_wheatR_translocation_gene_ids-0-115.txt
-```
+> wheatS_chr2A_gene_ids-0-115.txt
 
-## 2. Run liftoff to get the wheatS equivalent genes from wheatR translocated region
+## do the same for 5A and for wheatR
+```
+## 2. Get the coordinates of wheatS
+```
+grep -P "\tgene\t" wheatS_chr5A_regions-0-115.gff3 \
+| awk 'BEGIN{OFS="\t"}{
+split($9,a,";");
+gsub("ID=","",a[1]);
+print a[1],$1,$4,$5
+}' \
+> wheatS_chr5A-coordinates.tsv
+
+## do the same for 5A. For wheatR, use the liftoff file but first generate it
+```
+## 3. Run liftoff to get the wheatS equivalent genes from wheatR translocated region
 ```bash
 nano wheatS_genes_on_wheatR.sh
 #!/bin/bash
@@ -338,33 +358,24 @@ date
 ## 3. Use the saved gene list and the wheatR liftoff
 ```bash
 # wheatS-on-wheatR-liftoff
-grep -Ff wheatR-gene-ids-5A-to-2A-0-115.txt wheatS_genes_on_wheatR.gff3 \
-> wheatR-5A-to-2A-0-115-liftoff-genes.gff3
+grep -Ff wheatS_chr2A_gene_ids-0-115.txt wheatS_genes_on_wheatR.gff3 \
+> wheatR-2A-0-115-liftoff-genes.gff3
 
-# wheatS-equivalent
-grep -Ff wheatR-gene-ids-5A-to-2A-0-115.txt filtered_wheatS.gff3 \
-> wheatS-equivalent-5A-to-2A-0-115-liftoff-genes.gff3
+## do the same for 5A
 ```
 
 ## 4. Make coordinate tables
 ```bash
 # wheatR
-grep -P "\tgene\t" wheatR-5A-to-2A-0-115-liftoff-genes.gff3 \
+grep -P "\tgene\t" wheatR-5A-0-115-liftoff-genes.gff3 \
 | awk 'BEGIN{OFS="\t"}{
 split($9,a,";");
 gsub("ID=","",a[1]);
 print a[1],$1,$4,$5
 }' \
-> wheatR-5A-to-2A-0-115-coordinates.tsv
+> wheatR-5A-0-115-coordinates.tsv
 
-# wheatS-equivalent
-grep -P "\tgene\t" wheatS-equivalent-5A-to-2A-0-115-liftoff-genes.gff3 \
-| awk 'BEGIN{OFS="\t"}{
-split($9,a,";");
-gsub("ID=","",a[1]);
-print a[1],$1,$4,$5
-}' \
-> wheatS-equivalent-5A-to-2A-0-115-coordinates.tsv
+## do the same for 2A
 ```
 
 ## 5. Create a clean original WheatS GeneID
