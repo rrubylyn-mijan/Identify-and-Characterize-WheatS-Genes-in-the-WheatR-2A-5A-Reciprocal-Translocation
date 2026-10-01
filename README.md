@@ -378,4 +378,94 @@ print a[1],$1,$4,$5
 ## do the same for 2A
 ```
 
-## 5. Create a clean original WheatS GeneID
+## 5. Extract coding sequences (CDS) and translate them into proteins
+```bash
+ml miniconda3/25.5.1
+
+conda init
+
+source /apps/spack-managed-x86_64_v3-v1.1/gcc-11.5.0/miniconda3-25.5.1-75jzng7vis4hwdk3kzz5ywb4an56yzzz/etc/profile.d/conda.sh
+
+conda activate gffread_env
+
+# Clean the names of gff3 file to match the genome naming
+awk 'BEGIN{FS=OFS="\t"}
+/^#/ {print; next}
+$1 ~ /^chr[1-7][ABD]$/ {print}' \
+TRAES.wheatS.pgsb.r1.Mar2024.high.gff3 \
+> TRAES.wheatS.chromosomes.gff3
+
+## do the same for other wheat accessions
+
+# Make wheatS proteins
+gffread \
+TRAES.wheatS.chromosomes.gff3 \
+-g /directory/this/saved/wheatS_pm_v2.fasta \
+-y wheats_proteins.fa
+
+# Extract proteins:
+ml seqkit/2.10.0
+
+seqkit grep \
+  -f <(awk '{print $1".1"}' wheats-gene-ids-5A-to-2A-0-115.txt) \
+  wheats_proteins.fa \
+  > wheats-gene-ids-5A-to-2A-0-115-proteins.fa
+```
+
+## 6. Run BLASTp
+```bash
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p atlas
+#SBATCH --mem=20GB
+#SBATCH --time=72:00:00
+#SBATCH -J blastp-gene-ids-5A-to-2A-0-115
+#SBATCH -A genolabswheatphg
+
+ml blastplus/2.17.0
+
+cd /directory/this/saved/blastp-mapped-wheatr-sv
+
+query="/directory/this/saved/blastp-mapped-wheatr-sv/wheats-gene-ids-5A-to-2A-0-115-proteins.fa"
+out="wheats-gene-ids-5A-to-2A-0-115-blastp.tsv"
+
+for attempt in 1 2 3 4 5
+do
+    echo "BLAST attempt $attempt"
+
+    blastp \
+    -query "$query" \
+    -db swissprot \
+    -remote \
+    -out "$out" \
+    -outfmt "6 qseqid sseqid pident length evalue bitscore stitle" \
+    -evalue 1e-10 \
+    -max_target_seqs 5
+
+    if [[ -s "$out" ]]; then
+        echo "BLAST completed successfully"
+        exit 0
+    fi
+
+    echo "BLAST failed or output is empty. Retrying in 5 minutes..."
+    sleep 300
+done
+
+echo "BLAST failed after 5 attempts"
+exit 1s
+
+## do it for other wheat accessions you want to analyze
+```
+
+## 6. Run Interproscan
+```bash
+ml interproscan/5.78-109.0
+
+interproscan.sh \
+-i wheats-gene-ids-5A-to-2A-0-115-proteins.fa \
+-f TSV \
+-o wheats-gene-ids-5A-to-2A-0-115-interpro.tsv
+
+## do it for other wheat accessions you want to analyze
+```
