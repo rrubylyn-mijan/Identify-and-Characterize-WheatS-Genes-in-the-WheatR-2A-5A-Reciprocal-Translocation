@@ -468,4 +468,37 @@ interproscan.sh \
 -o wheats-gene-ids-5A-to-2A-0-115-interpro.tsv
 
 ## do it for other wheat accessions you want to analyze
+
+# prepare interpro result
+awk -F'\t' 'BEGIN{OFS="\t"}
+NR==FNR {
+    id=$1
+    sub(/\.[0-9]+$/, "", id)
+
+    # Only keep rows with an InterPro accession (IPRxxxxx)
+    for(i=1;i<=NF;i++){
+        if($i ~ /^IPR[0-9]+$/){
+            ipr=$i
+            desc=$(i+1)
+
+            if(desc!="" && desc!="-"){
+                if(interpro[id]=="")
+                    interpro[id]=ipr": "desc
+                else
+                    interpro[id]=interpro[id]"; "ipr": "desc
+            }
+        }
+    }
+    next
+}
+{
+    id=$1
+    if(id in interpro)
+        print id, interpro[id]
+    else
+        print id, "NA"
+}' wheats-gene-ids-2A-to-5A-0-115-interpro.tsv wheats-gene-ids-2A-to-5A-0-115.txt \
+> wheats-gene-ids-2A-to-5A-0-115-FINAL-InterPro.tsv
+
+## do it with 5A to 2A
 ```
