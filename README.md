@@ -7,8 +7,15 @@ WheatS_genes_on_WheatR.gff3
 WheatS_genes_on_WheatG.gff3
 filtered_WheatS.gff3
 ```
-## 1. Extract WheatS genes and wheatR genes
+## 1. Clean the names of gff3 file to match the genome naming
 ```bash
+awk 'BEGIN{FS=OFS="\t"}
+/^#/ {print; next}
+$1 ~ /^chr[1-7][ABD]$/ {print}' \
+TRAES.wheatR.pgsb.r1.Mar2024.high.gff3 \
+> TRAES.wheatR.chromosomes.gff3
+
+## Extract WheatS genes and wheatR genes
 Make BED file:
 cat > wheatS_chr5A-regions.bed <<EOF
 chr5A	0	115000000	wheatS_chr5A_-0-115
@@ -38,6 +45,7 @@ grep -P "\tgene\t" wheatS_chr2A_regions-0-115.gff3 \
 
 ## do the same for 5A and for wheatR
 ```
+
 ## 2. Get the coordinates of wheatS
 ```
 grep -P "\tgene\t" wheatS_chr5A_regions-0-115.gff3 \
