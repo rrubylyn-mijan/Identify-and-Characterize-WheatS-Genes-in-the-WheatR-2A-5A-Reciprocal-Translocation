@@ -458,7 +458,7 @@ exit 1s
 ## do it for other wheat accessions you want to analyze
 ```
 
-## 6. Run Interproscan
+## 7. Run Interproscan
 ```bash
 ml interproscan/5.78-109.0
 
@@ -501,4 +501,11 @@ NR==FNR {
 > wheats-gene-ids-2A-to-5A-0-115-FINAL-InterPro.tsv
 
 ## do it with 5A to 2A
+```
+
+## 8. Get the log2foldchange
+```bash
+awk 'NR==FNR {if(NR>1)a[$1]=$2; next} NR==1 {print "Gene\tlog2FoldChange"; next} {print $1"\t"a[$1]}' logfold-wheats wheats-gene-ids-5A-to-2A-0-115.txt > wheats-5A-to-2A-0-115-s-g-r-expression-levels-trans-breakpoint-logfoldchange.tsv
+
+## do the same for other wheat accessions
 ```
