@@ -517,3 +517,19 @@ awk 'NR==FNR {if(NR>1)a[$1]=$2; next} NR==1 {print "Gene\tlog2FoldChange"; next}
 
 ## do the same for other wheat accessions
 ```
+
+## 9. wheatR equivalent genes
+```bash
+ml bedtools2/2.31.1
+
+bedtools intersect \
+-a /directory/this/saved/3_gff_extracts/TRAES.wheatR.chromosomes.gff3 \
+-b wheatR_chr5A-regions.bed \
+-wa \
+> wheatr_chr5A_equivalent_regions.gff3
+
+## do the same for 2A
+
+# Get the gene IDs
+
+```
