@@ -514,8 +514,6 @@ interproscan.sh \
 -f TSV \
 -o wheats-gene-ids-5A-to-2A-0-115-interpro.tsv
 
-## do it for other wheat accessions you want to analyze
-
 # prepare interpro result
 awk -F'\t' 'BEGIN{OFS="\t"}
 NR==FNR {
