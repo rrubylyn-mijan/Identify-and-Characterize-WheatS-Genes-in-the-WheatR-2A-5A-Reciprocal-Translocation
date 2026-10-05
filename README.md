@@ -463,6 +463,45 @@ done
 echo "BLAST failed after 5 attempts"
 exit 1s
 
+# Clean best-hit BLASTp result
+sort -k1,1 -k6,6gr wheats-gene-ids-5A-to-2A-0-115-blastp.tsv | \
+awk '!seen[$1]++' > wheats-gene-ids-5A-to-2A-0-115-function-besthit.tsv
+
+# Make it easier to read
+awk -F'\t' 'BEGIN{OFS="\t"; print "GeneID","SwissProt_hit","Percent_identity","Alignment_length","Evalue","Bitscore","BLAST_annotation"}
+{
+print $1,$2,$3,$4,$5,$6,$7
+}' wheats-gene-ids-5A-to-2A-0-115-function-besthit.tsv > wheats-gene-ids-5A-to-2A-0-115-function-besthit-clean.tsv
+
+# Remove transcript version so .1 and .2 become one gene ID
+awk 'BEGIN{FS=OFS="\t"}
+NR==1 {print; next}
+{
+  sub(/\.[0-9]+$/, "", $1)
+  print
+}' wheats-gene-ids-5A-to-2A-0-115-function-besthit-clean.tsv > wheats-gene-ids-5A-to-2A-0-115-besthit-clean-geneID.tsv
+
+#  Keep only one BLAST hit per gene
+sort -k1,1 -k6,6gr wheats-gene-ids-5A-to-2A-0-115-besthit-clean-geneID.tsv | \
+awk 'BEGIN{FS=OFS="\t"} NR==1 || !seen[$1]++' \
+> wheats-gene-ids-5A-to-2A-0-115-function-besthit-clean-geneID-unique.tsv
+
+# Retain BLAST_annotation column for the genes listed in wheat-gene-ids-2A-to-5A-0-115.txt
+awk -F'\t' 'BEGIN{OFS="\t"}
+NR==FNR {
+    if (NR>1) {
+        match($0,/RecName: Full=([^;]+)/,m)
+        if (m[1]!="")
+            a[$1]=m[1]
+    }
+    next
+}
+{
+    print $1, a[$1]
+}' wheats-gene-ids-5A-to-2A-0-115-function-besthit-clean-geneID-unique.tsv wheats-gene-ids-5A-to-2A-0-115.txt \
+> wheats-gene-ids-5A-to-2A-0-115-function-blastp-final-result.tsv
+
+
 ## do it for other wheat accessions you want to analyze
 ```
 
