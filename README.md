@@ -21,8 +21,8 @@ cat > wheatS_chr5A-regions.bed <<EOF
 chr5A	0	115000000	wheatS_chr5A_-0-115
 EOF
 
-cat > heatS_chr2A-regions.bed <<EOF
-chr2A	0	115000000	wheatR_chr2A-0-115
+cat > wheatS_chr2A-regions.bed <<EOF
+chr2A	0	115000000	wheatS_chr2A-0-115
 EOF
 
 # do the same for wheatR
@@ -557,16 +557,101 @@ awk 'NR==FNR {if(NR>1)a[$1]=$2; next} NR==1 {print "Gene\tlog2FoldChange"; next}
 
 ## 9. wheatR equivalent genes
 ```bash
-ml bedtools2/2.31.1
+# Save the gene IDs of wheatR
+nano gene-IDs-wheat-2A-5A
 
-bedtools intersect \
--a /directory/this/saved/3_gff_extracts/TRAES.wheatR.chromosomes.gff3 \
--b wheatR_chr5A-regions.bed \
--wa \
-> wheatr_chr5A_equivalent_regions.gff3
+wheatR chromosome       wheatR start    wheatR end
+chr5A   251164  257767
+chr5A   259218  263539
+chr5A   279419  289395
+chr5A   326283  327433
+chr5A   389095  390999
+chr5A   396052  400862
+chr5A   471599  473099
+chr5A   498871  501916
+chr5A   511952  515630
 
-## do the same for 2A
+# Run python script
+python3 - <<'PY'
+import csv
+from collections import defaultdict
 
-# Get the gene IDs
+id_file = "wheats-gene-ids-5A-to-2A-0-115.txt"
+liftoff_file = "wheatS_genes_on_wheatR.gff3"
+rollag_file = "TRAES.WHEATR.chromosomes.gff3"
+output_file = "wheatS_wheatR_ID_mapping-2A-5A.tsv"
+
+def read_genes(path):
+    with open(path) as handle:
+        for line in handle:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            fields = line.split()
+            if len(fields) < 9 or fields[2] != "gene":
+                continue
+
+            attributes = {}
+            for item in fields[8].split(";"):
+                if "=" in item:
+                    key, value = item.split("=", 1)
+                    attributes[key] = value
+
+            gene_id = attributes.get("ID")
+            if gene_id:
+                yield (
+                    gene_id, fields[0],
+                    int(fields[3]), int(fields[4]), fields[6]
+                )
+
+with open(id_file) as handle:
+    requested = list(dict.fromkeys(
+        line.strip() for line in handle if line.strip()
+    ))
+
+wanted = set(requested)
+lifted = defaultdict(list)
+native = defaultdict(list)
+
+for gene in read_genes(liftoff_file):
+    if gene[0] in wanted:
+        lifted[gene[0]].append(gene)
+
+for gene in read_genes(rollag_file):
+    native[(gene[1], gene[4])].append(gene)
+
+with open(output_file, "w", newline="") as handle:
+    writer = csv.writer(handle, delimiter="\t")
+    writer.writerow([
+        "Sumai3_gene_ID", "Rollag_gene_ID", "Status"
+    ])
+
+    for sumai_id in requested:
+        if sumai_id not in lifted:
+            writer.writerow([sumai_id, "NA", "NOT_FOUND_IN_LIFTOFF"])
+            continue
+
+        candidates = set()
+        for _, chromosome, start, end, strand in lifted[sumai_id]:
+            for rollag_id, _, rstart, rend, _ in native[(chromosome, strand)]:
+                if max(start, rstart) <= min(end, rend):
+                    candidates.add(rollag_id)
+
+        if not candidates:
+            writer.writerow([sumai_id, "NA", "NO_OVERLAPPING_ROLLAG_GENE"])
+        else:
+            status = (
+                "SINGLE_OVERLAP_CANDIDATE"
+                if len(candidates) == 1
+                else "MULTIPLE_CANDIDATES_REVIEW"
+            )
+            for rollag_id in sorted(candidates):
+                writer.writerow([sumai_id, rollag_id, status])
+
+print(f"Saved: {output_file}")
+print(f"Requested Sumai 3 genes: {len(requested)}")
+print(f"Found in Liftoff: {len(lifted)}")
+PY
 
 ```
