@@ -404,7 +404,7 @@ FNR == NR {
         print id, $1, $4, $5
     }
 }
-' 5A-gene-IDs-sumai3 wheatS_genes_on_Rollag.gff3 \
+' 5A-gene-IDs-wheats wheatS_genes_on_Rollag.gff3 \
 > wheatS_5A_genes_mapped_to_wheatR_2A.tsv
 
 ## do the same for 5A
