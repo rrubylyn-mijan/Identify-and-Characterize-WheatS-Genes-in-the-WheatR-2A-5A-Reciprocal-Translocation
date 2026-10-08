@@ -363,11 +363,47 @@ echo "============================================================"
 date
 ```
 
-## 3. Use the saved gene list and the wheatR liftoff
+## 3. Use the saved gene list and the wheatR liftoff. 
 ```bash
 # wheatS-on-wheatR-liftoff
 grep -Ff wheatS_chr2A_gene_ids-0-115.txt wheatS_genes_on_wheatR.gff3 \
 > wheatR-2A-0-115-liftoff-genes.gff3
+
+# Extract the wheatS chr5A in liftoff
+awk -F '\t' -v OFS='\t' '
+BEGIN {
+    print "gene_id", "chromosome", "start", "end"
+}
+
+# Read the gene IDs from the first file
+FNR == NR {
+    sub(/\r$/, "", $1)
+    if ($1!="")wanted[$1] = 1
+    next
+}
+
+# Read gene entries from the Liftoff GFF3
+/^#/ || NF < 9 || $3 != "gene" { next }
+
+{
+    n = split($9, attributes, ";")
+    id = ""
+
+    for (i = 1; i <= n; i++) {
+        if (attributes[i] ~ /^ID=/) {
+            sub(/^ID=/, "", attributes[i])
+            sub(/^gene:/, "", attributes[i])
+            id = attributes[i]
+            break
+        }
+    }
+
+    if (id in wanted) {
+        print id, $1, $4, $5
+    }
+}
+' 5A-gene-IDs-sumai3 wheatS_genes_on_Rollag.gff3 \
+> wheatS_5A_genes_mapped_to_wheatR_2A.tsv
 
 ## do the same for 5A
 ```
