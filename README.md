@@ -28,6 +28,8 @@ EOF
 # do the same for wheatR
 
 Extract genes:
+ml bedtools2/2.31.1
+
 bedtools intersect \
 -a filtered_wheatS.gff3 \
 -b wheatS_chr2A-regions.bed \
